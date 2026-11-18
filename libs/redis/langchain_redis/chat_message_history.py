@@ -5,12 +5,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from langchain_core._api import deprecated
 from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_core.messages import (
-    AIMessage,
-    BaseMessage,
-    ToolMessage,
-    messages_from_dict,
-)
+from langchain_core.messages import BaseMessage, message_to_dict, messages_from_dict
 from redis import Redis
 from redis.exceptions import ConnectionError, ResponseError
 from redisvl.exceptions import RedisSearchError  # type: ignore
@@ -350,26 +345,10 @@ class RedisChatMessageHistory(BaseChatMessageHistory):
         common_data_to_store: Dict[str, Any] = {
             "type": message.type,
             "message_id": message_id,
-            "data": {
-                "content": message.content,
-                "additional_kwargs": message.additional_kwargs,
-                "type": message.type,
-            },
+            "data": message_to_dict(message)["data"],
             "session_id": self.session_id,
             "timestamp": timestamp,
         }
-        if isinstance(message, ToolMessage):
-            common_data_to_store["data"]["tool_call_id"] = message.tool_call_id
-            common_data_to_store["data"]["status"] = message.status
-        elif isinstance(message, AIMessage):
-            # Preserve tool_calls / invalid_tool_calls so that an AIMessage
-            # requesting tool use round-trips correctly. Without this, agent
-            # conversations reloaded from Redis lose all tool_calls, since
-            # AIMessage.tool_calls lives outside `additional_kwargs`.
-            common_data_to_store["data"]["tool_calls"] = message.tool_calls
-            common_data_to_store["data"]["invalid_tool_calls"] = (
-                message.invalid_tool_calls
-            )
 
         return common_data_to_store, self._message_key(message_id)
 
