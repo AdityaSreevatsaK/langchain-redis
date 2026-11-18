@@ -278,9 +278,7 @@ def test_message_round_trip_preserves_standard_metadata() -> None:
             name="assistant",
             response_metadata={"model_name": "example"},
             usage_metadata={"input_tokens": 2, "output_tokens": 3, "total_tokens": 5},
-            tool_calls=[
-                {"name": "lookup", "args": {"query": "x"}, "id": "call-1"}
-            ],
+            tool_calls=[{"name": "lookup", "args": {"query": "x"}, "id": "call-1"}],
         ),
     ]
 
