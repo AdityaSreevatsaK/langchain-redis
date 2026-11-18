@@ -295,7 +295,9 @@ def test_message_round_trip_preserves_standard_metadata() -> None:
     )
     assert restored == originals
     assert restored[0].response_metadata == {"source": "test"}
-    assert restored[1].usage_metadata == {
+    ai_message = restored[1]
+    assert isinstance(ai_message, AIMessage)
+    assert ai_message.usage_metadata == {
         "input_tokens": 2,
         "output_tokens": 3,
         "total_tokens": 5,
