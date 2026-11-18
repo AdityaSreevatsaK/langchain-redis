@@ -710,11 +710,11 @@ class RedisVectorStore(VectorStore):
         texts_list = list(texts)
 
         # Validate lengths of metadatas and keys if provided
-        if metadatas and len(metadatas) != len(texts_list):
+        if metadatas is not None and len(metadatas) != len(texts_list):
             raise ValueError(
                 "The length of 'metadatas' must match the number of 'texts'."
             )
-        if keys and len(keys) != len(texts_list):
+        if keys is not None and len(keys) != len(texts_list):
             raise ValueError("The length of 'keys' must match the number of 'texts'.")
 
         # If keys is None but ids is provided in kwargs, use ids as keys
