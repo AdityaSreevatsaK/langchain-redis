@@ -259,3 +259,66 @@ class TestRedisChatMessageHistoryExistingIndex:
             assert history.id == "test_session"
             history.index.create.assert_called_once()
             assert "already exists with different key prefix" not in caplog.text
+
+
+def test_message_round_trip_preserves_standard_metadata() -> None:
+    """Preserve BaseMessage and AIMessage fields when writing chat history."""
+    from langchain_core.messages import AIMessage, HumanMessage, messages_from_dict
+
+    originals = [
+        HumanMessage(
+            content="Hello",
+            id="human-1",
+            name="caller",
+            response_metadata={"source": "test"},
+        ),
+        AIMessage(
+            content="Hi",
+            id="ai-1",
+            name="assistant",
+            response_metadata={"model_name": "example"},
+            usage_metadata={"input_tokens": 2, "output_tokens": 3, "total_tokens": 5},
+            tool_calls=[
+                {"name": "lookup", "args": {"query": "x"}, "id": "call-1"}
+            ],
+        ),
+    ]
+
+    with (
+        patch("langchain_redis.chat_message_history.SearchIndex"),
+        patch("redis.Redis.from_url"),
+    ):
+        history = RedisChatMessageHistory(session_id="test_session")
+        history.add_messages(originals)
+        stored = history.index.load.call_args.kwargs["data"]
+
+    restored = messages_from_dict(
+        [{"type": item["type"], "data": item["data"]} for item in stored]
+    )
+    assert restored == originals
+    assert restored[0].response_metadata == {"source": "test"}
+    assert restored[1].usage_metadata == {
+        "input_tokens": 2,
+        "output_tokens": 3,
+        "total_tokens": 5,
+    }
+    assert stored[0]["message_id"] != stored[1]["message_id"]
+
+
+def test_legacy_message_payload_remains_readable() -> None:
+    """Existing Redis records using the smaller message payload still load."""
+    from langchain_core.messages import HumanMessage, messages_from_dict
+
+    restored = messages_from_dict(
+        [
+            {
+                "type": "human",
+                "data": {
+                    "content": "An earlier message",
+                    "additional_kwargs": {},
+                    "type": "human",
+                },
+            }
+        ]
+    )
+    assert restored == [HumanMessage(content="An earlier message")]
