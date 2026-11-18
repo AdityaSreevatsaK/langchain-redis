@@ -282,7 +282,10 @@ def test_add_texts_rejects_explicit_empty_sequences(
         ValueError,
         match=f"The length of '{field_name}' must match the number of 'texts'.",
     ):
-        vector_store.add_texts(texts=["document"], **{field_name: []})
+        if field_name == "metadatas":
+            vector_store.add_texts(texts=["document"], metadatas=[])
+        else:
+            vector_store.add_texts(texts=["document"], keys=[])
 
     mock_embeddings.embed_documents.assert_not_called()
     mock_index.load.assert_not_called()
