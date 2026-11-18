@@ -266,3 +266,23 @@ def test_add_texts_with_empty_ids_generates_ids(mocked_store: MockedStore) -> No
     mock_index.load.assert_called_once()
     assert "keys" not in mock_index.load.call_args.kwargs
     assert result == ["gen1", "gen2"]
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    ["metadatas", "keys"],
+)
+def test_add_texts_rejects_explicit_empty_sequences(
+    mocked_store: MockedStore, field_name: str
+) -> None:
+    """Provided metadata/key lists must match texts, even when empty."""
+    vector_store, mock_index, mock_embeddings = mocked_store
+
+    with pytest.raises(
+        ValueError,
+        match=f"The length of '{field_name}' must match the number of 'texts'.",
+    ):
+        vector_store.add_texts(texts=["document"], **{field_name: []})
+
+    mock_embeddings.embed_documents.assert_not_called()
+    mock_index.load.assert_not_called()
